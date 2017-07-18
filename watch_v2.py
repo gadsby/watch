@@ -11,7 +11,7 @@ import Levenshtein
 
 def get_arg_parser():
 	parser = argparse.ArgumentParser(description='Watch movies and tv.')
-	parser.add_argument('title', nargs='+', default='', help='Title of Movie or TV Show.')
+	parser.add_argument('title', nargs='*', default='', help='Title of Movie or TV Show.')
 	group = parser.add_mutually_exclusive_group()
 	group.add_argument('--list', action='store_true', help='List all available movies.')
 	group.add_argument('--random', action='store_true', help='Request a random movie.')

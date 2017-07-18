@@ -26,8 +26,8 @@ def get_input():
 		print('No arguments passed')
 		exit()
 
-def load_settings():
-	with open('./config_watch.json', 'r') as config:
+def load_settings(config_path):
+	with open(config_path, 'r') as config:
 		settings = json.loads(config.read())
 	min_display = settings['min_display']
 	data_path = settings['data_path']
@@ -75,7 +75,7 @@ def generate_random_options(dataframe_film):
 		print('Not a valid option')
 		exit()
 
-def launch_random_video(dataframe, rand_title):
+def launch_random_video(dataframe_film, rand_title):
 	path_for_random = dataframe_film[dataframe_film.Title == rand_title].full_path.values[0]
 	print('Opening...')
 	subprocess.call(['open', '-a', '/Applications/VLC.app', path_for_random])
@@ -194,7 +194,8 @@ if __name__ == "__main__":
 	try:
 
 		input_string, list_all_films, get_random_film = get_input()
-		min_display, data_path, weights, inventory_path = load_settings()
+		min_display, data_path, weights, inventory_path = \
+                        load_settings('/Users/olivergadsby/execFiles/watch_v2/config_watch.json')
 
 		if list_all_films:
 			subprocess.call(['less', inventory_path])

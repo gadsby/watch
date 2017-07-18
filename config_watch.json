@@ -1,0 +1,10 @@
+{
+    "weights": {
+        "longest_common_substring": 1,
+        "levenshtein": 6,
+        "offset": 1.5
+    },
+    "min_display": 3,
+    "data_path": "/Volumes/OGADSBY_HD/Media/",
+    "inventory_path": "/Volumes/OGADSBY_HD/Media/Movies/Inventory.txt"
+}

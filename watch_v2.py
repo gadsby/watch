@@ -138,9 +138,9 @@ def parse_selection(max_selection, default, default_str):
 		exit()
 
 def launch_torrent_request(input_string):
-	pirate_URL = 'https://thepiratebay.org/search/{}/0/99/0'.format(input_string.replace(' ','%20'))
-	subprocess.call(['open', '-a', '/Applications/Google\ Chrome.app/', pirate_URL])
-	exit()
+    pirate_URL = 'https://thepiratebay.org/search/{}/0/99/0'.format(input_string.replace(' ','%20'))
+    subprocess.Popen(['open', '-a', '/Applications/Google Chrome.app/', pirate_URL])
+    exit()
 
 def get_seasons_for_title(tv_title):
 	seasons = []

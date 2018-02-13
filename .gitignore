@@ -1,1 +1,5 @@
 .ipynb_checkpoints
+__pycache__
+film_tags.json
+tag_categories.json
+*.ipynb

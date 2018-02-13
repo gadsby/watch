@@ -6,5 +6,6 @@
     },
     "min_display": 3,
     "data_path": "/Volumes/OGADSBY_HD/Media/",
-    "inventory_path": "/Volumes/OGADSBY_HD/Media/Movies/Inventory.txt"
+    "inventory_path": "/Volumes/OGADSBY_HD/Media/Movies/Inventory.txt",
+    "tags": "/Users/olivergadsby/execFiles/watch_v2/film_tags.json"
 }

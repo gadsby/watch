@@ -4,6 +4,7 @@ import os
 import sys
 import json
 import random
+import urllib
 import argparse
 import subprocess
 import pandas as pd
@@ -13,15 +14,17 @@ def get_arg_parser():
 	parser = argparse.ArgumentParser(description='Watch movies and tv.')
 	parser.add_argument('title', nargs='*', default='', help='Title of Movie or TV Show.')
 	group = parser.add_mutually_exclusive_group()
-	group.add_argument('--list', action='store_true', help='List all available movies.')
-	group.add_argument('--random', action='store_true', help='Request a random movie.')
+	group.add_argument('-l', '--list', action='store_true', help='List all available movies.')
+	group.add_argument('-r', '--random', action='store_true', help='Request a random movie.')
+	group.add_argument('-b', '--browse', action='store_true', help='Search through pre-made lists.')
+	group.add_argument('-i', '--info', action='store_true', help='Print film and tv counts.')
 	return parser.parse_args()
 
 def get_input():
 	if len(sys.argv) > 1:
 		args = get_arg_parser()
 		input_string = ' '.join(args.title)
-		return input_string, args.list, args.random
+		return input_string, args.list, args.random, args.browse, args.info
 	else:
 		print('No arguments passed')
 		exit()
@@ -33,7 +36,8 @@ def load_settings(config_path):
 	data_path = settings['data_path']
 	weights = [settings['weights'][name] for name in ['longest_common_substring', 'levenshtein', 'offset']]
 	inventory_path = settings['inventory_path']
-	return min_display, data_path, weights, inventory_path
+	film_tags = settings['tags']
+	return min_display, data_path, weights, inventory_path, film_tags
 
 def verify_path(data_path):
 	if not os.path.exists(data_path):
@@ -66,7 +70,7 @@ def gen_dataframe_film(movie_path):
 
 def generate_random_options(dataframe_film):
 	rand_title = dataframe_film.Title[random.randint(0,len(dataframe_film)-1)]
-	selection = input('{}? Y/[N]'.format(rand_title))
+	selection = input('{}? Y/[N] '.format(rand_title))
 	if selection.lower().startswith('y'):
 		launch_random_video(dataframe_film, rand_title)
 	elif selection.lower().startswith('n') or not len(selection):
@@ -138,7 +142,8 @@ def parse_selection(max_selection, default, default_str):
 		exit()
 
 def launch_torrent_request(input_string):
-    pirate_URL = 'https://thepiratebay.org/search/{}/0/99/0'.format(input_string.replace(' ','%20'))
+    url_encode = urllib.parse.quote(input_string)
+    pirate_URL = 'https://thepiratebay.org/search/{}/0/99/207'.format(url_encode)
     subprocess.Popen(['open', '-a', '/Applications/Google Chrome.app/', pirate_URL])
     exit()
 
@@ -188,14 +193,40 @@ def display_episode_df(episode_df):
 	print('')
 	print(episode_df[['Episode']].to_csv(sep='\t'), end='')
 
+def add_tags(series, film_tags):
+    try:
+        if series['is_movie']:
+            series['Tags'] = film_tags[series['Title']]
+        else:
+            series['Tags'] = []
+    except KeyError:
+        series['Tags'] = []
+        #print(series.Title) #for finding movies without tags (temporary)
+    return series
+
+def get_tags(film_tags_path):
+	try:
+		with open(film_tags_path, 'r') as f_in:
+			return json.loads(f_in.read())
+	except IOError:
+		return {}
+
+def gen_dataframe_tags(master_df):
+	tags_df = pd.DataFrame({'Category':sorted(set(sum(list(master_df.Tags), [])))})
+	tags_df.index = range(1, len(tags_df) + 1)
+	return tags_df
+
+def gen_dataframe_tag_list(master_df, tag):
+	tag_df = master_df[master_df.apply(lambda series: tag in series['Tags'], axis=1)].sort_values(by='Title').reset_index()
+	tag_df.index = range(1, len(tag_df) + 1)
+	return tag_df
 
 if __name__ == "__main__":
 
 	try:
-
-		input_string, list_all_films, get_random_film = get_input()
-		min_display, data_path, weights, inventory_path = \
-                        load_settings('/Users/olivergadsby/execFiles/watch_v2/config_watch.json')
+		input_string, list_all_films, get_random_film, browse_tags, print_info = get_input()
+		min_display, data_path, weights, inventory_path, film_tags_path = \
+			load_settings('/Users/olivergadsby/execFiles/watch_v2/config_watch.json')
 
 		if list_all_films:
 			subprocess.call(['less', inventory_path])
@@ -208,9 +239,33 @@ if __name__ == "__main__":
 		master_df = pd.concat([film_df, tv_df])
 		master_df = reindex_on_similarity(input_string, master_df, weights)
 
+		film_tags = get_tags(film_tags_path)
+		master_df = master_df.apply(lambda series: add_tags(series, film_tags), axis=1)
+
+		if print_info:
+			print('Film Count: {}'.format(len(film_df)))
+			print('TV Count: {}'.format(len(tv_df)))
+			exit()
+
 		if get_random_film:
 			while True:
 				generate_random_options(film_df)
+
+		if browse_tags:
+			tags_df = gen_dataframe_tags(master_df)
+			print(tags_df[['Category']].to_csv(sep='\t'), end='')###
+			selection = parse_selection(max_selection=len(tags_df), default=0, default_str='random list')
+			if not selection:
+				selection = random.randint(1,len(tags_df))
+			tag = tags_df[tags_df.index == selection]['Category'].values[0]###
+			print('')
+			tag_df = gen_dataframe_tag_list(master_df, tag)
+			print(tag_df[['Title']].to_csv(sep='\t'), end='')###
+			selection = parse_selection(max_selection=len(tag_df), default=0, default_str='random film')
+			if not selection:
+				selection = random.randint(1,len(tag_df))
+			launch_video(tag_df, selection)
+			exit()
 
 		num_display = display_options(master_df, min_display, weights)
 		selection = parse_selection(max_selection=num_display+1, default=1, default_str='closest match')
@@ -232,7 +287,4 @@ if __name__ == "__main__":
 				launch_video(episode_df, selection)
 
 	except:
-		pass
-
-
-
+		exit(-1)

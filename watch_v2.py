@@ -287,4 +287,4 @@ if __name__ == "__main__":
 				launch_video(episode_df, selection)
 
 	except:
-		exit(-1)
+		exit()
